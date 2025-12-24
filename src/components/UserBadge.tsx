@@ -91,8 +91,14 @@ export function UserBadge() {
   // Logged in state
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-medium text-white">
+      <div 
+        className="flex items-center gap-2"
+        title={user.email || "User"}
+      >
+        <div 
+          className="relative flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-medium text-white"
+          title={user.email || "User"}
+        >
           {user.displayName?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
           {isAdmin && (
             <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-green-500 ring-2 ring-background">
@@ -101,7 +107,10 @@ export function UserBadge() {
           )}
         </div>
         <div className="hidden flex-col md:flex">
-          <span className="text-sm font-medium">
+          <span 
+            className="text-sm font-medium"
+            title={user.email || "User"}
+          >
             {user.displayName || user.email?.split("@")[0]}
           </span>
           {isAdmin && (
