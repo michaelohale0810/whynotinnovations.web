@@ -141,7 +141,12 @@ export default function AdminLayout({
             </div>
             <nav className="flex gap-1">
               {adminNavLinks.map((link) => {
-                const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+                // For the root /admin route, only match exactly
+                // For other routes, match exact or sub-routes
+                const isActive =
+                  link.href === "/admin"
+                    ? pathname === "/admin"
+                    : pathname === link.href || pathname.startsWith(link.href + "/");
                 return (
                   <Link
                     key={link.href}
