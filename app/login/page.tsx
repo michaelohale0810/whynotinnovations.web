@@ -10,6 +10,9 @@ import { auth } from "@/lib/firebaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
 
+// Prevent prerendering - this page requires client-side Firebase
+export const dynamic = "force-dynamic";
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
