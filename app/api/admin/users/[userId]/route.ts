@@ -35,9 +35,10 @@ async function verifyIdToken(idToken: string): Promise<string | null> {
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const { userId: targetUserId } = await params;
     const { searchParams } = new URL(request.url);
     const idToken = searchParams.get("idToken");
 
@@ -74,8 +75,6 @@ export async function DELETE(
         { status: 403 }
       );
     }
-
-    const targetUserId = params.userId;
 
     // Prevent admins from deleting themselves
     if (targetUserId === requestingUserId) {

@@ -6,10 +6,11 @@ import { isAdmin } from "@/lib/admin";
 // GET - Get a single innovation (public, no auth required)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const innovationDoc = await getDoc(doc(db, "innovations", params.id));
+    const { id } = await params;
+    const innovationDoc = await getDoc(doc(db, "innovations", id));
 
     if (!innovationDoc.exists()) {
       return NextResponse.json(
@@ -37,9 +38,10 @@ export async function GET(
 // PUT - Update an innovation (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { userId } = body;
 
@@ -58,7 +60,7 @@ export async function PUT(
       );
     }
 
-    const innovationRef = doc(db, "innovations", params.id);
+    const innovationRef = doc(db, "innovations", id);
 
     // Check if innovation exists
     const innovationDoc = await getDoc(innovationRef);
@@ -106,9 +108,10 @@ export async function PUT(
 // DELETE - Delete an innovation (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
@@ -127,7 +130,7 @@ export async function DELETE(
       );
     }
 
-    const innovationRef = doc(db, "innovations", params.id);
+    const innovationRef = doc(db, "innovations", id);
 
     // Check if innovation exists
     const innovationDoc = await getDoc(innovationRef);
