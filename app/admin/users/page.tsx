@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebaseClient";
+import { auth, db, getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/components/AuthProvider";
 
 interface User {
@@ -41,7 +41,7 @@ export default function AdminUsersPage() {
       }
 
       try {
-        const adminDoc = await getDoc(doc(db, "admins", user.uid));
+        const adminDoc = await getDoc(doc(getDb(), "admins", user.uid));
         const exists = adminDoc.exists();
         setIsAdmin(exists);
         if (exists) {
@@ -65,19 +65,33 @@ export default function AdminUsersPage() {
     if (!user?.uid) return;
 
     setLoadingUsers(true);
+    setError(null);
     try {
       const idToken = await user.getIdToken();
       const response = await fetch(`/api/admin/users?idToken=${encodeURIComponent(idToken)}`);
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error fetching users:", data.error);
+        const errorMsg = data.error || "Failed to fetch users";
+        console.error("Error fetching users:", errorMsg);
+        setError(errorMsg);
+        setUsers([]);
         return;
       }
 
-      setUsers(data.users || []);
+      // Ensure we have an array
+      if (Array.isArray(data.users)) {
+        setUsers(data.users);
+        console.log("Fetched users:", data.users.length);
+      } else {
+        console.error("Invalid response format:", data);
+        setError("Invalid response format from server");
+        setUsers([]);
+      }
     } catch (error: any) {
       console.error("Error fetching users:", error);
+      setError(`Failed to fetch users: ${error.message || "Unknown error"}`);
+      setUsers([]);
     } finally {
       setLoadingUsers(false);
     }
@@ -326,6 +340,17 @@ export default function AdminUsersPage() {
         {loadingUsers ? (
           <div className="card py-12 text-center">
             <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+            <p className="mt-4 text-sm text-muted">Loading users...</p>
+          </div>
+        ) : error && users.length === 0 ? (
+          <div className="card border-red-200 bg-red-50 p-6 text-center dark:border-red-900/50 dark:bg-red-900/20">
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
+            <button
+              onClick={fetchUsers}
+              className="btn btn-secondary mt-4"
+            >
+              Try Again
+            </button>
           </div>
         ) : users.length === 0 ? (
           <div className="card py-12 text-center">
