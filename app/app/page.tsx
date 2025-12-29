@@ -5,11 +5,9 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db, getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { Innovation } from "@/types/innovation";
-import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const [innovations, setInnovations] = useState<Innovation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,10 +100,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateInnovation = () => {
-    router.push("/admin");
-  };
-
   // Calculate progress based on status
   const getProgress = (status: string) => {
     switch (status) {
@@ -131,33 +125,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold md:text-3xl">
-            Welcome back{user?.displayName || user?.email ? `, ${user.displayName || user.email?.split("@")[0]}` : ""}!
-          </h1>
-          <p className="mt-1 text-muted">
-            View and explore all available innovation projects.
-          </p>
-        </div>
-        {isAdmin && (
-          <button onClick={handleCreateInnovation} className="btn btn-primary w-full sm:w-auto">
-            <svg
-              className="mr-2 h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Create Innovation
-          </button>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold md:text-3xl">
+          Welcome back{user?.displayName || user?.email ? `, ${user.displayName || user.email?.split("@")[0]}` : ""}!
+        </h1>
+        <p className="mt-1 text-muted">
+          View and explore all available innovation projects.
+        </p>
       </div>
 
       {/* Error state */}
@@ -301,18 +275,8 @@ export default function DashboardPage() {
           </div>
           <h3 className="mt-4 font-semibold">No Innovations Yet</h3>
           <p className="mt-1 text-sm text-muted">
-            {isAdmin
-              ? "Get started by creating your first innovation."
-              : "Check back later for available innovation projects."}
+            Check back later for available innovation projects.
           </p>
-          {isAdmin && (
-            <button
-              onClick={handleCreateInnovation}
-              className="btn btn-primary mt-4"
-            >
-              Create Innovation
-            </button>
-          )}
         </div>
       )}
     </div>
