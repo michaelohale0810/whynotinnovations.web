@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebaseClient";
+import { db, getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { Innovation } from "@/types/innovation";
 import { useRouter } from "next/navigation";
@@ -26,7 +26,7 @@ export default function DashboardPage() {
       try {
         // Check if user has an admin document in Firestore
         // Firestore rules allow users to read their own admin document
-        const adminDoc = await getDoc(doc(db, "admins", user.uid));
+        const adminDoc = await getDoc(doc(getDb(), "admins", user.uid));
         setIsAdmin(adminDoc.exists());
         console.log("Admin check:", { userId: user.uid, isAdmin: adminDoc.exists() });
       } catch (error: any) {
@@ -42,18 +42,35 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  // Fetch innovations
+  // Fetch innovations - wait for user to be loaded first
   useEffect(() => {
-    fetchInnovations();
-  }, []);
+    // Only fetch if user is loaded (even if null, we know auth state is ready)
+    if (user !== undefined) {
+      fetchInnovations();
+    }
+  }, [user]);
 
   const fetchInnovations = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Ensure Firebase is initialized by accessing db
+      // The proxy will initialize Firebase if needed
+      try {
+        // This will trigger initialization if not already done
+        const dbInstance = db;
+        if (!dbInstance) {
+          throw new Error("Firebase Firestore is not initialized. Please check your environment variables.");
+        }
+      } catch (initError: any) {
+        console.error("Firebase initialization error:", initError);
+        throw new Error(`Firebase initialization failed: ${initError.message}. Please check your environment variables.`);
+      }
+      
       // Fetch innovations directly from Firestore
       // Firestore rules allow public read access to innovations
-      const innovationsSnapshot = await getDocs(collection(db, "innovations"));
+      const innovationsSnapshot = await getDocs(collection(getDb(), "innovations"));
       const innovationsData = innovationsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -63,7 +80,23 @@ export default function DashboardPage() {
       setInnovations(innovationsData);
     } catch (err: any) {
       console.error("Error fetching innovations:", err);
-      setError("Failed to load innovations. Please try again later.");
+      console.error("Error code:", err?.code);
+      console.error("Error message:", err?.message);
+      console.error("Error details:", err);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to load innovations. Please try again later.";
+      if (err?.code === "permission-denied") {
+        errorMessage = "Permission denied. Please check your Firestore security rules.";
+      } else if (err?.code === "unavailable") {
+        errorMessage = "Firestore is temporarily unavailable. Please try again later.";
+      } else if (err?.message?.includes("Firebase") || err?.message?.includes("environment variables")) {
+        errorMessage = err.message;
+      } else if (err?.code) {
+        errorMessage = `Firebase error (${err.code}): ${err.message || "Unknown error"}`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

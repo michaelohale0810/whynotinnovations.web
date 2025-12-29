@@ -1,5 +1,5 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
+import { getAuth, Auth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 
 // Lazy initialization - only initialize when actually accessed
@@ -50,6 +50,14 @@ function initializeFirebase() {
   _auth = getAuth(_app);
   _db = getFirestore(_app);
 
+  // Explicitly set persistence to localStorage (default, but being explicit)
+  // This ensures auth state persists across page reloads
+  if (typeof window !== "undefined") {
+    setPersistence(_auth, browserLocalPersistence).catch((error) => {
+      console.error("Error setting auth persistence:", error);
+    });
+  }
+
   return { app: _app, auth: _auth, db: _db };
 }
 
@@ -72,11 +80,48 @@ export const auth = new Proxy({} as Auth, {
   },
 }) as Auth;
 
+// For db, we need to ensure it returns the actual Firestore instance
+// because Firestore functions like doc() do type checking that doesn't work with Proxy
+// We'll initialize it lazily but return the actual instance
 export const db = new Proxy({} as Firestore, {
   get(_target, prop) {
     if (!_db) {
       initializeFirebase();
     }
-    return (_db as any)[prop];
+    const value = (_db as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(_db);
+    }
+    return value;
+  },
+  // These traps help the proxy be recognized as the actual Firestore instance
+  getPrototypeOf() {
+    if (!_db) {
+      initializeFirebase();
+    }
+    return Object.getPrototypeOf(_db!);
+  },
+  has(_target, prop) {
+    if (!_db) {
+      initializeFirebase();
+    }
+    return prop in (_db as any);
+  },
+  // This is the key - when the proxy is used as an argument (like doc(db, ...)),
+  // we need to return the actual instance
+  apply(_target, _thisArg, args) {
+    if (!_db) {
+      initializeFirebase();
+    }
+    return (_db as any).apply(_thisArg, args);
   },
 }) as Firestore;
+
+// Create a helper function that ensures db is initialized and returns the actual instance
+// This can be used when passing db to functions that do strict type checking
+export function getDb(): Firestore {
+  if (!_db) {
+    initializeFirebase();
+  }
+  return _db!;
+}

@@ -1,12 +1,12 @@
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "./firebaseClient";
+import { db, getDb } from "./firebaseClient";
 
 /**
  * Check if a user is an admin by looking up their UID in the admins collection
  */
 export async function isAdmin(userId: string): Promise<boolean> {
   try {
-    const adminDoc = await getDoc(doc(db, "admins", userId));
+    const adminDoc = await getDoc(doc(getDb(), "admins", userId));
     return adminDoc.exists();
   } catch (error) {
     console.error("Error checking admin status:", error);
@@ -19,7 +19,7 @@ export async function isAdmin(userId: string): Promise<boolean> {
  */
 export async function getAdmin(userId: string) {
   try {
-    const adminDoc = await getDoc(doc(db, "admins", userId));
+    const adminDoc = await getDoc(doc(getDb(), "admins", userId));
     if (adminDoc.exists()) {
       return { id: adminDoc.id, ...adminDoc.data() };
     }

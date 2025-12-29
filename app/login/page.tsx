@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  onAuthStateChanged,
 } from "firebase/auth";
 import { auth } from "@/lib/firebaseClient";
 import { useAuth } from "@/components/AuthProvider";
@@ -69,13 +70,34 @@ function LoginForm() {
       const idToken = await result.user.getIdToken();
 
       // Store session in httpOnly cookie
-      await fetch("/api/auth/session", {
+      const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
 
-      router.push(nextUrl);
+      if (!sessionResponse.ok) {
+        throw new Error("Failed to create session");
+      }
+
+      // Wait for Firebase Auth state to be confirmed
+      // This ensures the user is properly signed in before redirecting
+      await new Promise<void>((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          if (user && user.uid === result.user.uid) {
+            unsubscribe();
+            resolve();
+          }
+        });
+        // Timeout after 2 seconds to prevent hanging
+        setTimeout(() => {
+          unsubscribe();
+          resolve();
+        }, 2000);
+      });
+
+      // Use window.location for a full page reload to ensure auth state is fresh
+      window.location.href = nextUrl;
     } catch (err: unknown) {
       const firebaseError = err as { code?: string; message?: string };
       switch (firebaseError.code) {

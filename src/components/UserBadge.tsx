@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebaseClient";
+import { auth, db, getDb } from "@/lib/firebaseClient";
 import { useAuth } from "./AuthProvider";
 
 export function UserBadge() {
@@ -21,13 +21,18 @@ export function UserBadge() {
       }
 
       try {
+        // Use getDb() to get the actual Firestore instance (not the proxy)
+        // This ensures Firestore's doc() function recognizes it properly
+        const dbInstance = getDb();
+        
         // Check if user has an admin document in Firestore
         // Firestore rules allow users to read their own admin document
-        const adminDoc = await getDoc(doc(db, "admins", user.uid));
+        const adminDoc = await getDoc(doc(dbInstance, "admins", user.uid));
         setIsAdmin(adminDoc.exists());
         console.log("Admin check:", { userId: user.uid, isAdmin: adminDoc.exists() });
       } catch (error) {
         console.error("Error checking admin status:", error);
+        console.error("Error details:", error);
         setIsAdmin(false);
       }
     };
@@ -43,14 +48,23 @@ export function UserBadge() {
 
   const handleSignOut = async () => {
     try {
+      // Sign out from Firebase first
+      await signOut(auth);
+
       // Clear session cookie
       await fetch("/api/auth/session", {
         method: "DELETE",
       });
 
-      await signOut(auth);
+      // Wait a moment for auth state to update
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Redirect to home page with full page reload to ensure everything is cleared
+      window.location.href = "/";
     } catch (error) {
       console.error("Sign out error:", error);
+      // Even if there's an error, try to redirect
+      window.location.href = "/";
     }
   };
 

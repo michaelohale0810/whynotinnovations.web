@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebaseClient";
+import { db, getDb } from "@/lib/firebaseClient";
 
 /**
  * Check if the current user is an admin
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ isAdmin: false }, { status: 401 });
     }
 
-    const adminDoc = await getDoc(doc(db, "admins", userId));
+    const adminDoc = await getDoc(doc(getDb(), "admins", userId));
     return NextResponse.json({ isAdmin: adminDoc.exists() });
   } catch (error) {
     console.error("Error checking admin status:", error);

@@ -16,9 +16,14 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ success: true });
 
+    // Determine if we're in production (Firebase App Hosting is always HTTPS)
+    const isProduction = process.env.NODE_ENV === "production" || 
+                         process.env.VERCEL_ENV === "production" ||
+                         !!process.env.FIREBASE_CONFIG;
+
     response.cookies.set(COOKIE_NAME, idToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction, // Always secure in production (HTTPS required)
       sameSite: "lax",
       maxAge: COOKIE_MAX_AGE,
       path: "/",
@@ -38,9 +43,14 @@ export async function DELETE() {
   try {
     const response = NextResponse.json({ success: true });
 
+    // Determine if we're in production
+    const isProduction = process.env.NODE_ENV === "production" || 
+                         process.env.VERCEL_ENV === "production" ||
+                         !!process.env.FIREBASE_CONFIG;
+
     response.cookies.set(COOKIE_NAME, "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
       sameSite: "lax",
       maxAge: 0,
       path: "/",

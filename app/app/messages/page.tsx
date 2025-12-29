@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { collection, addDoc, Timestamp, query, where, orderBy, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebaseClient";
+import { db, getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { Innovation } from "@/types/innovation";
 import { Message } from "@/types/innovation";
@@ -29,7 +29,7 @@ export default function MessagesPage() {
 
   const fetchInnovations = async () => {
     try {
-      const innovationsSnapshot = await getDocs(collection(db, "innovations"));
+      const innovationsSnapshot = await getDocs(collection(getDb(), "innovations"));
       const innovationsData = innovationsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -48,7 +48,7 @@ export default function MessagesPage() {
     setLoadingMessages(true);
     try {
       const messagesQuery = query(
-        collection(db, "messages"),
+        collection(getDb(), "messages"),
         where("createdBy", "==", user.uid),
         orderBy("createdAt", "desc")
       );
@@ -104,7 +104,7 @@ export default function MessagesPage() {
         }),
       };
 
-      await addDoc(collection(db, "messages"), messageData);
+      await addDoc(collection(getDb(), "messages"), messageData);
       
       setContent("");
       setSelectedInnovationId("");
@@ -125,7 +125,7 @@ export default function MessagesPage() {
     if (!user?.uid || !messageId) return;
 
     try {
-      const messageRef = doc(db, "messages", messageId);
+      const messageRef = doc(getDb(), "messages", messageId);
       await updateDoc(messageRef, { archived: !currentlyArchived });
       // Refresh messages list
       fetchUserMessages();
