@@ -1,31 +1,41 @@
-# Firebase App Hosting Configuration
-# Environment variables can be set here or in the Firebase Console
-# Variables set in the console take precedence over this file
+# Settings for Cloud Run
+runConfig:
+  minInstances: 2
+  maxInstances: 100
+  concurrency: 100
+  cpu: 2
+  memoryMiB: 1024
 
 env:
   # Firebase Client SDK Configuration
   # These are needed for the build process
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: ${NEXT_PUBLIC_FIREBASE_API_KEY}
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    secret: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    secret: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    secret: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    secret: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    secret: ${NEXT_PUBLIC_FIREBASE_APP_ID}
     availability:
       - BUILD
       - RUNTIME
@@ -33,6 +43,7 @@ env:
   # Firebase Admin SDK Configuration (for server-side API routes)
   # Only needed at RUNTIME, not during build
   - variable: FIREBASE_SERVICE_ACCOUNT
+    secret: ${FIREBASE_SERVICE_ACCOUNT}
     availability:
       - RUNTIME
     # Note: This should be set in Firebase Console as a JSON string
