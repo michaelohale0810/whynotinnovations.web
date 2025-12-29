@@ -69,6 +69,18 @@ export default function AdminUsersPage() {
     try {
       const idToken = await user.getIdToken();
       const response = await fetch(`/api/admin/users?idToken=${encodeURIComponent(idToken)}`);
+      
+      // Check content type to ensure we got JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        // Try to get text to see what we got
+        const text = await response.text();
+        console.error("Non-JSON response received:", text.substring(0, 200));
+        setError("Server returned an invalid response. Please check server logs.");
+        setUsers([]);
+        return;
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -90,7 +102,12 @@ export default function AdminUsersPage() {
       }
     } catch (error: any) {
       console.error("Error fetching users:", error);
-      setError(`Failed to fetch users: ${error.message || "Unknown error"}`);
+      // Check if it's a JSON parse error
+      if (error.message && error.message.includes("JSON")) {
+        setError("Server returned an invalid response. This may indicate a server configuration issue. Please check that FIREBASE_SERVICE_ACCOUNT is set correctly.");
+      } else {
+        setError(`Failed to fetch users: ${error.message || "Unknown error"}`);
+      }
       setUsers([]);
     } finally {
       setLoadingUsers(false);

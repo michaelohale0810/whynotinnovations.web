@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebaseAdmin";
+import { adminAuth, initializeAdmin } from "@/lib/firebaseAdmin";
 import { getFirestore } from "firebase-admin/firestore";
 
-const adminDb = getFirestore();
+// Get Firestore instance (will be initialized when needed)
+function getAdminDb() {
+  try {
+    if (!adminAuth) {
+      initializeAdmin();
+    }
+    return getFirestore();
+  } catch (error) {
+    console.error("Failed to initialize Firestore:", error);
+    throw error;
+  }
+}
 
 /**
  * Check if a user is an admin using Admin SDK
  */
 async function isAdmin(userId: string): Promise<boolean> {
   try {
+    const adminDb = getAdminDb();
     const adminDoc = await adminDb.collection("admins").doc(userId).get();
     return adminDoc.exists;
   } catch (error) {
@@ -22,7 +34,11 @@ async function isAdmin(userId: string): Promise<boolean> {
  */
 async function verifyIdToken(idToken: string): Promise<string | null> {
   try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    let authInstance = adminAuth;
+    if (!authInstance) {
+      authInstance = initializeAdmin();
+    }
+    const decodedToken = await authInstance.verifyIdToken(idToken);
     return decodedToken.uid;
   } catch (error) {
     console.error("Error verifying ID token:", error);
@@ -35,6 +51,20 @@ async function verifyIdToken(idToken: string): Promise<string | null> {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Ensure adminAuth is initialized
+    let authInstance = adminAuth;
+    if (!authInstance) {
+      try {
+        authInstance = initializeAdmin();
+      } catch (initError: any) {
+        console.error("Firebase Admin Auth initialization failed:", initError);
+        return NextResponse.json(
+          { error: `Server configuration error: Firebase Admin SDK not initialized. ${initError.message || "Please check FIREBASE_SERVICE_ACCOUNT environment variable."}` },
+          { status: 500 }
+        );
+      }
+    }
+
     const { searchParams } = new URL(request.url);
     const idToken = searchParams.get("idToken");
 
@@ -64,7 +94,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if requesting user is admin
-    const adminStatus = await isAdmin(userId);
+    let adminStatus: boolean;
+    try {
+      adminStatus = await isAdmin(userId);
+    } catch (error: any) {
+      console.error("Error checking admin status:", error);
+      return NextResponse.json(
+        { error: "Failed to verify admin status" },
+        { status: 500 }
+      );
+    }
+
     if (!adminStatus) {
       return NextResponse.json(
         { error: "Forbidden: Admin access required" },
@@ -73,31 +113,57 @@ export async function GET(request: NextRequest) {
     }
 
     // List all users using Firebase Admin SDK
-    const listUsersResult = await adminAuth.listUsers();
+    let listUsersResult;
+    try {
+      listUsersResult = await authInstance.listUsers();
+    } catch (error: any) {
+      console.error("Error listing users from Firebase Admin:", error);
+      return NextResponse.json(
+        { error: `Failed to list users: ${error.message || "Unknown error"}` },
+        { status: 500 }
+      );
+    }
     
     // Check admin status for each user
     const usersWithAdminStatus = await Promise.all(
       listUsersResult.users.map(async (userRecord) => {
-        const userIsAdmin = await isAdmin(userRecord.uid);
-        return {
-          uid: userRecord.uid,
-          email: userRecord.email,
-          emailVerified: userRecord.emailVerified,
-          disabled: userRecord.disabled,
-          isAdmin: userIsAdmin,
-          metadata: {
-            creationTime: userRecord.metadata.creationTime,
-            lastSignInTime: userRecord.metadata.lastSignInTime,
-          },
-        };
+        try {
+          const userIsAdmin = await isAdmin(userRecord.uid);
+          return {
+            uid: userRecord.uid,
+            email: userRecord.email,
+            emailVerified: userRecord.emailVerified,
+            disabled: userRecord.disabled,
+            isAdmin: userIsAdmin,
+            metadata: {
+              creationTime: userRecord.metadata.creationTime,
+              lastSignInTime: userRecord.metadata.lastSignInTime,
+            },
+          };
+        } catch (error: any) {
+          console.error(`Error checking admin status for user ${userRecord.uid}:`, error);
+          // Return user without admin status if check fails
+          return {
+            uid: userRecord.uid,
+            email: userRecord.email,
+            emailVerified: userRecord.emailVerified,
+            disabled: userRecord.disabled,
+            isAdmin: false,
+            metadata: {
+              creationTime: userRecord.metadata.creationTime,
+              lastSignInTime: userRecord.metadata.lastSignInTime,
+            },
+          };
+        }
       })
     );
 
     return NextResponse.json({ users: usersWithAdminStatus });
   } catch (error: any) {
     console.error("Error listing users:", error);
+    console.error("Error stack:", error.stack);
     return NextResponse.json(
-      { error: "Failed to list users" },
+      { error: `Failed to list users: ${error.message || "Unknown error"}` },
       { status: 500 }
     );
   }
@@ -108,6 +174,20 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Ensure adminAuth is initialized
+    let authInstance = adminAuth;
+    if (!authInstance) {
+      try {
+        authInstance = initializeAdmin();
+      } catch (initError: any) {
+        console.error("Firebase Admin Auth initialization failed:", initError);
+        return NextResponse.json(
+          { error: `Server configuration error: Firebase Admin SDK not initialized. ${initError.message || "Please check FIREBASE_SERVICE_ACCOUNT environment variable."}` },
+          { status: 500 }
+        );
+      }
+    }
+
     const body = await request.json();
     const { email, password, idToken } = body;
 
@@ -172,7 +252,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user using Firebase Admin SDK
-    const userRecord = await adminAuth.createUser({
+    const userRecord = await authInstance.createUser({
       email,
       password,
       emailVerified: false,
