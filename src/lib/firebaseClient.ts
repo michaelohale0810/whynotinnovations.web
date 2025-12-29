@@ -21,11 +21,29 @@ function initializeFirebase() {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   };
 
-  // Check if we have valid config
-  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-    throw new Error(
-      "Firebase configuration is missing. Please set NEXT_PUBLIC_FIREBASE_API_KEY and NEXT_PUBLIC_FIREBASE_PROJECT_ID environment variables."
-    );
+  // Check if we have valid config with detailed error messages
+  const missingVars: string[] = [];
+  if (!firebaseConfig.apiKey) missingVars.push("NEXT_PUBLIC_FIREBASE_API_KEY");
+  if (!firebaseConfig.authDomain) missingVars.push("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN");
+  if (!firebaseConfig.projectId) missingVars.push("NEXT_PUBLIC_FIREBASE_PROJECT_ID");
+  if (!firebaseConfig.storageBucket) missingVars.push("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET");
+  if (!firebaseConfig.messagingSenderId) missingVars.push("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID");
+  if (!firebaseConfig.appId) missingVars.push("NEXT_PUBLIC_FIREBASE_APP_ID");
+
+  if (missingVars.length > 0) {
+    const errorMsg = `Firebase configuration is missing the following environment variables: ${missingVars.join(", ")}. ` +
+      `If using Firebase Secrets, ensure they are created in Google Secret Manager and referenced in apphosting.yaml. ` +
+      `The secret names must match exactly (e.g., secret name "NEXT_PUBLIC_FIREBASE_API_KEY" should match the variable name).`;
+    console.error(errorMsg);
+    console.error("Current env vars:", {
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasAuthDomain: !!firebaseConfig.authDomain,
+      hasProjectId: !!firebaseConfig.projectId,
+      hasStorageBucket: !!firebaseConfig.storageBucket,
+      hasMessagingSenderId: !!firebaseConfig.messagingSenderId,
+      hasAppId: !!firebaseConfig.appId,
+    });
+    throw new Error(errorMsg);
   }
 
   _app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
