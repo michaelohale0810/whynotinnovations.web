@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebaseAdmin";
+import { adminAuth, initializeAdmin } from "@/lib/firebaseAdmin";
 import { getFirestore } from "firebase-admin/firestore";
 
-const adminDb = getFirestore();
+// Get Firestore instance (will be initialized when needed)
+function getAdminDb() {
+  try {
+    if (!adminAuth) {
+      initializeAdmin();
+    }
+    return getFirestore();
+  } catch (error) {
+    console.error("Failed to initialize Firestore:", error);
+    throw error;
+  }
+}
 
 /**
  * Check if a user is an admin using Admin SDK
  */
 async function isAdmin(userId: string): Promise<boolean> {
   try {
+    const adminDb = getAdminDb();
     const adminDoc = await adminDb.collection("admins").doc(userId).get();
     return adminDoc.exists;
   } catch (error) {
@@ -22,7 +34,11 @@ async function isAdmin(userId: string): Promise<boolean> {
  */
 async function verifyIdToken(idToken: string): Promise<string | null> {
   try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    let authInstance = adminAuth;
+    if (!authInstance) {
+      authInstance = initializeAdmin();
+    }
+    const decodedToken = await authInstance.verifyIdToken(idToken);
     return decodedToken.uid;
   } catch (error) {
     console.error("Error verifying ID token:", error);
@@ -38,6 +54,20 @@ export async function DELETE(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    // Ensure adminAuth is initialized
+    let authInstance = adminAuth;
+    if (!authInstance) {
+      try {
+        authInstance = initializeAdmin();
+      } catch (initError: any) {
+        console.error("Firebase Admin Auth initialization failed:", initError);
+        return NextResponse.json(
+          { error: `Server configuration error: Firebase Admin SDK not initialized. ${initError.message || "Please check FIREBASE_SERVICE_ACCOUNT environment variable."}` },
+          { status: 500 }
+        );
+      }
+    }
+
     const { userId: targetUserId } = await params;
     const { searchParams } = new URL(request.url);
     const idToken = searchParams.get("idToken");
@@ -94,7 +124,7 @@ export async function DELETE(
     }
 
     // Delete user using Firebase Admin SDK
-    await adminAuth.deleteUser(targetUserId);
+    await authInstance.deleteUser(targetUserId);
 
     return NextResponse.json({
       success: true,
