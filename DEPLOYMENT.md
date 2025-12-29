@@ -107,7 +107,29 @@ firebase deploy
 4. Go to **Service accounts** tab
 5. Click **Generate new private key**
 6. Download the JSON file
-7. Convert the entire JSON to a single-line string and set it as `FIREBASE_SERVICE_ACCOUNT` environment variable
+7. **Convert the entire JSON to a single-line string** and set it as `FIREBASE_SERVICE_ACCOUNT` environment variable
+
+### Formatting the Service Account JSON
+
+The `FIREBASE_SERVICE_ACCOUNT` secret must be the **entire JSON object as a single-line string**, without any extra quotes around it.
+
+**Correct format:**
+```
+{"type":"service_account","project_id":"your-project","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_x509_cert_url":"..."}
+```
+
+**Incorrect formats (DO NOT USE):**
+- ❌ `"{...}"` (with quotes around the JSON)
+- ❌ `'{...}'` (with single quotes)
+- ❌ Multi-line JSON (must be single line)
+- ❌ Escaped quotes like `\"` (use actual quotes in the JSON)
+
+**How to convert:**
+1. Open the downloaded JSON file
+2. Remove all line breaks and extra spaces
+3. The result should be one continuous line
+4. Copy that entire line and paste it as the secret value
+5. **Do NOT add quotes around it** - Firebase Secrets will handle the string encoding
 
 **Important**: Never commit the service account key to version control!
 
