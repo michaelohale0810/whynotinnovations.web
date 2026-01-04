@@ -100,19 +100,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Calculate progress based on status
-  const getProgress = (status: string) => {
-    switch (status) {
-      case "completed":
-        return 100;
-      case "active":
-        return 50;
-      case "pending":
-        return 0;
-      default:
-        return 0;
-    }
-  };
 
   if (loading) {
     return (
@@ -144,141 +131,81 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Innovations grid */}
+      {/* Innovations List */}
       {!error && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {innovations.map((innovation) => {
-            const progress = getProgress(innovation.status);
-            return (
-              <div
-                key={innovation.id}
-                className="card transition-all hover:border-accent/50 hover:shadow-md"
-              >
+        <div className="space-y-4">
+          {innovations.length === 0 ? (
+            <div className="card py-12 text-center">
+              <p className="text-muted">No innovations yet. Check back later for available innovation projects.</p>
+            </div>
+          ) : (
+            innovations.map((innovation) => (
+              <div key={innovation.id} className="card">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold">{innovation.title}</h3>
-                    <p className="mt-1 text-sm text-muted line-clamp-2">
-                      {innovation.description}
-                    </p>
-                  </div>
-                  <span
-                    className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      innovation.status === "active"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : innovation.status === "completed"
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                    }`}
-                  >
-                    {innovation.status.charAt(0).toUpperCase() +
-                      innovation.status.slice(1)}
-                  </span>
-                </div>
-
-                {/* Website Link */}
-                {innovation.link && (
-                  <div className="mt-3">
-                    <a
-                      href={innovation.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:underline"
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                      Test Innovation
-                    </a>
-                  </div>
-                )}
-
-                {/* Tags */}
-                {innovation.tags && innovation.tags.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {innovation.tags.map((tag, index) => (
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold">{innovation.title}</h3>
                       <span
-                        key={index}
-                        className="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent"
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          innovation.status === "active"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : innovation.status === "completed"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                        }`}
                       >
-                        {tag}
+                        {innovation.status}
                       </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Progress bar */}
-                <div className="mt-4">
-                  <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-muted">Progress</span>
-                    <span className="font-medium">{progress}%</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-border">
-                    <div
-                      className="h-full rounded-full bg-accent transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Meta info */}
-                <div className="mt-4 flex items-center justify-between text-xs text-muted">
-                  <div className="flex items-center gap-1">
-                    <svg
-                      className="h-3 w-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    {new Date(innovation.createdAt).toLocaleDateString()}
+                    </div>
+                    <p className="mt-2 text-muted">{innovation.description}</p>
+                    {innovation.link && (
+                      <div className="mt-3">
+                        <a
+                          href={innovation.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-accent hover:underline"
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                          Test Innovation Website
+                        </a>
+                      </div>
+                    )}
+                    {innovation.tags && innovation.tags.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {innovation.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="mt-3 text-xs text-muted">
+                      Created: {new Date(innovation.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            ))
+          )}
         </div>
       )}
 
-      {/* Empty state */}
-      {!error && innovations.length === 0 && (
-        <div className="card py-12 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
-            <svg
-              className="h-8 w-8 text-accent"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
-          </div>
-          <h3 className="mt-4 font-semibold">No Innovations Yet</h3>
-          <p className="mt-1 text-sm text-muted">
-            Check back later for available innovation projects.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
